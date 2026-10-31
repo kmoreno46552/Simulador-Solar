@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cuánta energía junta un panel solar en un día</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mar: #0b3a5b;
+    --acero: #2c6283;
+    --azul: #1f78c8;
+    --hoja: #1f9d63;
+    --hoja-osc: #137a4c;
+    --menta: #e1f3e9;
+    --sol: #ffb703;
+    --tiza: #f3f9fa;
+    --riel: #bcdcec;
+    --linea: #d3e8f4;
+    --fuente: "Bricolage Grotesque", "Segoe UI", system-ui, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--tiza);
+    color: var(--mar);
+    font-family: var(--fuente);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+
+  :focus-visible { outline: 3px solid var(--azul); outline-offset: 3px; }
+
+  .pagina {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 34px 22px 60px;
+  }
+
+  .cabecera h1 {
+    margin: 0 0 10px;
+    max-width: 17em;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+  }
+  .equipo {
+    margin: 0 0 22px;
+    color: var(--acero);
+    font-size: 0.98rem;
+  }
+
+  .hero {
+    position: relative;
+    border-radius: 28px;
+    overflow: hidden;
+    background: #cfe6ee;
+  }
+  canvas { display: block; width: 100%; }
+  #lienzo { height: 460px; touch-action: none; }  
+  #lienzoE { height: 270px; }
+
+  .lectura {
+    position: absolute;
+    top: 20px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .lectura.izq { left: 26px; }
+  .lectura.der { right: 26px; text-align: right; }
+  .gran {
+    font-size: clamp(2.5rem, 6vw, 4.2rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .gran small {
+    font-size: 0.34em;
+    font-weight: 500;
+    letter-spacing: 0;
+    margin-left: 6px;
+  }
+  .reloj {
+    font-size: clamp(2rem, 4.5vw, 3.2rem);
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .pie {
+    margin-top: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  @media (max-width: 760px) {
+    #lienzo { height: 340px; }
+    .lectura { position: static; padding: 14px 18px 0; text-align: left !important; }
+    .hero { display: flex; flex-direction: column; }
+  }
+
+  .transporte {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 16px 0 4px;
+  }
+  .boton {
+    background: var(--mar);
+    color: #ffffff;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 26px;
+    font-family: var(--fuente);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .boton:hover { background: var(--hoja-osc); }
+  .hora-control { flex: 1; min-width: 240px; }
+
+  .cuerpo {
+    display: grid;
+    grid-template-columns: 330px 1fr;
+    gap: 28px;
+    margin-top: 26px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .cuerpo { grid-template-columns: 1fr; }
+  }
+
+  .controles {
+    background: var(--menta);
+    border-radius: 22px;
+    padding: 8px 24px 14px;
+  }
+  .grupo {
+    padding: 16px 0 6px;
+    border-bottom: 1px solid rgba(11, 58, 91, 0.13);
+  }
+  .grupo:last-child { border-bottom: none; }
+  .grupo h3 {
+    margin: 0 0 10px;
+    font-size: 1.02rem;
+    font-weight: 700;
+  }
+  .control { margin-bottom: 12px; }
+  .fila-control {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.93rem;
+    color: var(--acero);
+  }
+  .fila-control .valor {
+    color: var(--mar);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 26px;
+    background: transparent;
+    cursor: pointer;
+    --c: var(--hoja);
+    --lleno: 50%;
+  }
+  .g-azul input[type=range] { --c: var(--azul); }
+  #hora { --c: var(--sol); }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 8px;
+    border-radius: 8px;
+    background: linear-gradient(to right, var(--c) var(--lleno), var(--riel) var(--lleno));
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    box-sizing: border-box;
+    width: 22px;
+    height: 22px;
+    margin-top: -7px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 5px solid var(--c);
+  }
+  input[type=range]::-moz-range-track {
+    height: 8px;
+    border-radius: 8px;
+    background: var(--riel);
+  }
+  input[type=range]::-moz-range-progress {
+    height: 8px;
+    border-radius: 8px;
+    background: var(--c);
+  }
+  input[type=range]::-moz-range-thumb {
+    box-sizing: border-box;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 5px solid var(--c);
+  }
+
+  .resultados {
+    background: #ffffff;
+    border: 1px solid var(--linea);
+    border-radius: 22px;
+    padding: 22px 24px 18px;
+  }
+  .resultados h2 {
+    margin: 0 0 12px;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .lista { margin: 14px 0 0; }
+  .fila {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--linea);
+  }
+  .fila:last-child { border-bottom: none; }
+  .fila dt { color: var(--acero); }
+  .fila dd {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .fila.clave dt { color: var(--mar); font-weight: 600; }
+  .fila.clave dd { color: var(--hoja-osc); font-size: 1.8rem; font-weight: 800; }
+
+  .problema {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 44px;
+    margin-top: 48px;
+    padding-top: 28px;
+    border-top: 3px solid var(--mar);
+  }
+  @media (max-width: 800px) {
+    .problema { grid-template-columns: 1fr; gap: 10px; }
+  }
+  .problema h2 {
+    margin: 0 0 10px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .problema p { margin: 0 0 12px; max-width: 62ch; }
+  .problema ol { margin: 0; padding-left: 22px; max-width: 52ch; }
+  .problema li { margin-bottom: 6px; }
+  .problema li::marker { color: var(--hoja); font-weight: 700; }
+
+  /* ===== Sección: la integral y su cálculo paso a paso ===== */
+  .integral-sec {
+    margin-top: 48px;
+    padding-top: 28px;
+    border-top: 3px solid var(--mar);
+  }
+  .integral-sec h2 {
+    margin: 0 0 10px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .integral-sec h3 {
+    margin: 26px 0 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .integral-sec p { margin: 0 0 12px; max-width: 66ch; }
+  .definicion {
+    background: #ffffff;
+    border: 2px solid var(--hoja);
+    border-radius: 22px;
+    padding: 6px 24px 14px;
+    max-width: 760px;
+    margin: 14px 0 18px;
+  }
+  .definicion h3 { margin: 14px 0 8px; }
+  .definicion ul { margin: 0; padding-left: 22px; }
+  .definicion li { margin-bottom: 6px; }
+  .definicion li::marker { color: var(--hoja); font-weight: 700; }
+  .ecuacion {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--menta);
+    border-radius: 18px;
+    padding: 16px 22px;
+    margin: 10px 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    overflow-x: auto;
+  }
+  .ecuacion.grande { font-size: 1.5rem; }
+  .integral { display: inline-flex; align-items: center; gap: 2px; }
+  .integral .lim {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 3em;
+    font-size: 0.75em;
+    font-style: italic;
+  }
+  .integral .signo { font-size: 3em; font-weight: 300; line-height: 1; }
+  .ecuacion i { font-family: Georgia, "Times New Roman", serif; }
+  .resultado-vivo {
+    display: inline-block;
+    background: var(--hoja);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .pasos-calc { margin: 0; padding-left: 22px; max-width: 78ch; }
+  .pasos-calc > li { margin-bottom: 14px; }
+  .pasos-calc > li::marker { color: var(--hoja); font-weight: 700; }
+  .pasos-calc .nota { color: var(--acero); font-size: 0.95rem; margin: 4px 0 0; }
+  .vivo {
+    background: #ffffff;
+    border: 1px solid var(--linea);
+    border-radius: 22px;
+    padding: 8px 24px 10px;
+    max-width: 640px;
+    margin-top: 10px;
+  }
+
+  .doc {
+    margin-top: 48px;
+    padding-top: 28px;
+    border-top: 3px solid var(--mar);
+  }
+  .doc h2 {
+    margin: 0 0 10px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .doc h3 {
+    margin: 20px 0 6px;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+  .doc p { margin: 0 0 12px; max-width: 66ch; }
+  .doc ul, .doc ol { margin: 0; padding-left: 22px; max-width: 68ch; }
+  .doc li { margin-bottom: 8px; }
+  .doc li::marker { color: var(--hoja); font-weight: 700; }
+  .doc a { color: var(--azul); }
+  .doc .ecuacion { max-width: 68ch; }
+  .oficial {
+    background: var(--menta);
+    border-radius: 18px;
+    padding: 8px 22px 14px;
+    max-width: 760px;
+    margin: 16px 0;
+  }
+
+  .tabla { overflow-x: auto; margin: 14px 0 20px; }
+  .tabla table {
+    width: 100%;
+    min-width: 700px;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+  .tabla th {
+    text-align: left;
+    color: var(--acero);
+    font-weight: 600;
+    padding: 8px 14px 8px 0;
+    border-bottom: 2px solid var(--mar);
+  }
+  .tabla td {
+    padding: 11px 14px 11px 0;
+    border-bottom: 1px solid var(--linea);
+    vertical-align: top;
+  }
+  .tabla td.f { font-weight: 600; color: var(--hoja-osc); }
+</style>
+</head>
+<body>
+<div class="pagina">
+
+  <header class="cabecera">
+    <h1>¿Cuánta energía junta un panel solar en un día?</h1>
+    <p class="equipo">Integrante: Kevin Moreno Martinez.</p>
+  </header>
+
+  <section class="hero">
+    <div class="lectura izq">
+      <div class="gran"><span id="gAcum"></span><small>kWh</small></div>
+      <div class="pie" id="gRango"></div>
+    </div>
+    <div class="lectura der">
+      <div class="reloj" id="gHora"></div>
+      <div class="pie" id="gPot"></div>
+      <div class="pie" id="gIrr"></div>
+    </div>
+    <canvas id="lienzo"></canvas>
+  </section>
+
+  <div class="transporte">
+    <button class="boton" id="boton">Simular el día</button>
+    <div class="hora-control">
+      <div class="fila-control"><span>Hora del día</span><span class="valor" id="vhora"></span></div>
+      <input id="hora" type="range" min="6" max="18" step="0.05" value="10">
+    </div>
+  </div>
+
+  <div class="cuerpo">
+
+    <aside class="controles">
+      <section class="grupo g-verde">
+        <h3>Panel solar</h3>
+        <div class="control">
+          <div class="fila-control"><span>Área (A)</span><span class="valor" id="vA"></span></div>
+          <input id="A" type="range" min="1" max="100" step="1" value="20">
+        </div>
+        <div class="control">
+          <div class="fila-control"><span>Eficiencia (η)</span><span class="valor" id="vEta"></span></div>
+          <input id="eta" type="range" min="5" max="30" step="1" value="20">
+        </div>
+      </section>
+
+      <section class="grupo g-azul">
+        <h3>Sol</h3>
+        <div class="control">
+          <div class="fila-control"><span>Irradiancia máxima (G₀)</span><span class="valor" id="vG0"></span></div>
+          <input id="g0" type="range" min="300" max="1200" step="10" value="900">
+        </div>
+      </section>
+
+      <section class="grupo g-verde">
+        <h3>Ventana de tiempo</h3>
+        <div class="control">
+          <div class="fila-control"><span>Hora inicial (a)</span><span class="valor" id="va"></span></div>
+          <input id="a" type="range" min="6" max="18" step="0.25" value="8">
+        </div>
+        <div class="control">
+          <div class="fila-control"><span>Hora final (b)</span><span class="valor" id="vb"></span></div>
+          <input id="b" type="range" min="6" max="18" step="0.25" value="16">
+        </div>
+      </section>
+    </aside>
+
+    <section class="resultados">
+      <h2>Energía acumulada a lo largo del día</h2>
+      <canvas id="lienzoE"></canvas>
+
+      <dl class="lista">
+        <div class="fila clave">
+          <dt>Energía producida entre a y b</dt>
+          <dd id="rExacta"></dd>
+        </div>
+        <div class="fila">
+          <dt>Energía acumulada hasta la hora marcada</dt>
+          <dd id="rAcum"></dd>
+        </div>
+        <div class="fila">
+          <dt>CO₂ que se evita</dt>
+          <dd id="rCO2"></dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+
+  <!-- ===== La integral del problema y cómo se calculó ===== -->
+  <section class="integral-sec">
+    <h2>La integral que resuelve el simulador</h2>
+    <p>
+      El simulador calcula una sola integral definida: la energía que produce el panel entre las
+      horas <i>a</i> y <i>b</i>.
+    </p>
+
+    <div class="definicion">
+      <h3>Definición formal</h3>
+      <ul>
+        <li><strong>Variable:</strong> <i>t</i>, la hora del día en horas, con 6 ≤ <i>t</i> ≤ 18.</li>
+        <li><strong>Función integrada:</strong> <i>P</i>(<i>t</i>) = (<i>η</i> · <i>A</i> / 1000) · <i>G</i><sub>0</sub> · sen( π(<i>t</i> − 6) / 12 ), la potencia del panel en kW.</li>
+        <li><strong>Parámetros:</strong> <i>A</i> en m², <i>η</i> como fracción (20 % = 0,20) y <i>G</i><sub>0</sub> en W/m².</li>
+        <li><strong>Límites de integración:</strong> 6 ≤ <i>a</i> &lt; <i>b</i> ≤ 18, en horas.</li>
+        <li><strong>Resultado:</strong> <i>E</i> en kWh, porque kW · h = kWh.</li>
+      </ul>
+    </div>
+
+    <div class="ecuacion grande">
+      <span><i>E</i> =</span>
+      <span class="integral">
+        <span class="lim"><span>b</span><span>a</span></span>
+        <span class="signo">∫</span>
+      </span>
+      <span><i>P</i>(<i>t</i>) <i>dt</i> =</span>
+      <span class="integral">
+        <span class="lim"><span>b</span><span>a</span></span>
+        <span class="signo">∫</span>
+      </span>
+      <span>(<i>η</i> · <i>A</i> / 1000) · <i>G</i><sub>0</sub> · sen( π(<i>t</i> − 6)/12 ) <i>dt</i></span>
+    </div>
+
+    <p>
+      Se resuelve con la sustitución <i>u</i> = π(<i>t</i> − 6)/12 y el teorema fundamental del
+      cálculo, <i>E</i> = <i>F</i>(<i>b</i>) − <i>F</i>(<i>a</i>):
+    </p>
+    <div class="ecuacion">
+      <span><i>E</i> = (12/π) · (<i>η</i> · <i>A</i> / 1000) · <i>G</i><sub>0</sub> · [ cos( π(<i>a</i> − 6)/12 ) − cos( π(<i>b</i> − 6)/12 ) ]</span>
+    </div>
+
+    <h3>Cómo se calcularon los valores de la pantalla</h3>
+    <p>
+      Ejemplo con los valores iniciales del simulador: A = 20 m², η = 20 %, G₀ = 900 W/m²,
+      a = 8:00 y b = 16:00.
+    </p>
+    <ol class="pasos-calc">
+      <li>
+        <strong>Constante del panel.</strong> Se pasa de W a kW dividiendo entre 1000.
+        <div class="ecuacion"><span><i>k</i> = <i>η</i> · <i>A</i> / 1000 = 0,20 · 20 / 1000 = 0,004</span></div>
+        <div class="ecuacion"><span>Potencia máxima: <i>k</i> · <i>G</i><sub>0</sub> = 0,004 · 900 = 3,6 kW</span></div>
+      </li>
+      <li>
+        <strong>Se plantea la integral.</strong>
+        <div class="ecuacion">
+          <span><i>E</i> =</span>
+          <span class="integral">
+            <span class="lim"><span>16</span><span>8</span></span>
+            <span class="signo">∫</span>
+          </span>
+          <span>3,6 · sen( π(<i>t</i> − 6)/12 ) <i>dt</i></span>
+        </div>
+      </li>
+      <li>
+        <strong>Sustitución.</strong>
+        <div class="ecuacion"><span><i>u</i> = π(<i>t</i> − 6)/12, &nbsp; <i>du</i> = (π/12) <i>dt</i>, &nbsp; <i>dt</i> = (12/π) <i>du</i></span></div>
+        <div class="ecuacion"><span>Límites: <i>t</i> = 8 → <i>u</i> = π/6 &nbsp;&nbsp; y &nbsp;&nbsp; <i>t</i> = 16 → <i>u</i> = 5π/6</span></div>
+      </li>
+      <li>
+        <strong>Se integra.</strong>
+        <div class="ecuacion"><span><i>E</i> = 3,6 · (12/π) ∫ sen <i>u</i> <i>du</i> = (43,2/π) · [ −cos <i>u</i> ] de π/6 a 5π/6</span></div>
+      </li>
+      <li>
+        <strong>Se evalúa (teorema fundamental del cálculo).</strong>
+        <div class="ecuacion"><span><i>E</i> = (43,2/π) · ( cos(π/6) − cos(5π/6) ) = (43,2/π) · ( √3/2 + √3/2 ) = 43,2·√3 / π ≈ 23,82 kWh</span></div>
+        <p class="nota">Es el valor de «Energía producida entre a y b».</p>
+      </li>
+      <li>
+        <strong>Energía acumulada hasta las 10:00.</strong> Se cambia el límite superior: <i>t</i> = 10 → <i>u</i> = π/3.
+        <div class="ecuacion"><span><i>E</i>(10) = (43,2/π) · ( cos(π/6) − cos(π/3) ) = (43,2/π) · ( √3/2 − 1/2 ) ≈ 5,03 kWh</span></div>
+        <p class="nota">Es el valor de «Energía acumulada hasta la hora marcada» cuando el sol está en las 10:00.</p>
+      </li>
+      <li>
+        <strong>CO₂ que se evita.</strong>
+        <div class="ecuacion"><span><i>m</i> = 0,16438 · 23,82 ≈ 3,92 kg</span></div>
+      </li>
+    </ol>
+
+    <h3>Con los valores que tienes puestos ahora</h3>
+    <div class="vivo">
+      <dl class="lista">
+        <div class="fila"><dt>Constante k = η · A / 1000</dt><dd id="lvK"></dd></div>
+        <div class="fila"><dt>Potencia máxima k · G₀</dt><dd id="lvP"></dd></div>
+        <div class="fila"><dt>Integral entre a y b</dt><dd id="lvE"></dd></div>
+        <div class="fila"><dt>Energía acumulada hasta las <span id="lvHora"></span></dt><dd id="lvEh"></dd></div>
+        <div class="fila"><dt>CO₂ que se evita</dt><dd id="lvC"></dd></div>
+      </dl>
+    </div>
+    <p style="margin-top:12px">
+      Resultado de la integral:
+      <span class="resultado-vivo"><span id="iE"></span> kWh</span>
+    </p>
+  </section>
+
+  <section class="problema">
+    <div>
+      <h2>Planteamiento del problema</h2>
+      <p>
+        Queremos saber cuánta electricidad podría generar un panel solar instalado en el techo
+        de un edificio, y cuánto CO₂ se dejaría de emitir al usar esa energía en lugar de la
+        de la red eléctrica.
+      </p>
+      <p>
+        El sol no pega igual durante todo el día: en Bogotá, que está cerca del ecuador, sale
+        hacia las 6:00 y se oculta hacia las 18:00, y al mediodía la irradiancia llega a su
+        máximo (G₀). Por eso la potencia del panel no es constante y no podemos simplemente
+        multiplicar potencia por horas: hay que integrar la potencia en el tiempo.
+      </p>
+    </div>
+    <div>
+      <h2>Lo que calculamos</h2>
+      <ol>
+        <li>La energía E (en kWh) que produce el panel entre las horas a y b.</li>
+        <li>El CO₂ que se evita con esa energía.</li>
+        <li>Qué pasa si cambiamos el área, la eficiencia, la irradiancia o el horario.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===== De dónde surge el problema y fuentes oficiales ===== -->
+  <section class="doc">
+    <h2>De dónde surge el problema</h2>
+    <p>
+      Colombia está en la zona ecuatorial, así que el día solar dura casi lo mismo durante todo
+      el año: el sol sale hacia las 6:00 y se oculta hacia las 18:00. Eso permite describir la
+      irradiancia de un día despejado con una sola función seno, que es el modelo del simulador.
+    </p>
+    <p>
+      La electricidad del país circula por el Sistema Interconectado Nacional (SIN), cuyo factor
+      de emisión de referencia es de 164,38 g de CO₂ por kWh (valor unificado publicado en 2020
+      por el Ministerio de Minas y Energía, la UPME y XM). Cada kWh que un panel entrega en lugar
+      de la red evita esa cantidad de CO₂, y la Ley 1715 de 2014 promueve que las energías
+      renovables no convencionales, como la solar, se integren a ese sistema.
+    </p>
+    <p>
+      De ahí sale la pregunta práctica: ¿cuánta energía, y cuánto CO₂ evitado, representa un panel
+      en un día? Como la potencia cambia con la hora, responderla es un problema de cálculo
+      integral: la energía es el área bajo la curva de potencia.
+    </p>
+
+    <div class="oficial">
+      <h3>Fuentes oficiales de consulta del problema</h3>
+      <ul>
+        <li>
+          <strong>Recurso solar:</strong> UPME e IDEAM, <em>Atlas de Radiación Solar de Colombia</em>,
+          documento oficial de la radiación solar del país.
+          <a href="https://www1.upme.gov.co:443/Hemeroteca/Impresos/Atlas_Radiacion_Solar_2005/1-Atlas_Radiacion_Solar.pdf" target="_blank" rel="noopener">Ver documento</a>.
+        </li>
+        <li>
+          <strong>Factor de emisión del SIN:</strong> Ministerio de Minas y Energía, UPME y XM (2020).
+          <a href="https://www1.upme.gov.co/Normatividad/Circular_055_2020.pdf" target="_blank" rel="noopener">Circular 055 de 2020 de la UPME</a>.
+        </li>
+        <li>
+          <strong>Marco legal:</strong> Ley 1715 de 2014, sobre la integración de las energías
+          renovables no convencionales al Sistema Energético Nacional.
+        </li>
+      </ul>
+    </div>
+
+    <h3>Supuestos y límites del modelo</h3>
+    <ul>
+      <li>Día despejado, sin nubes: la irradiancia sigue G(t) = G₀ · sen(π(t − 6)/12) entre las 6:00 y las 18:00.</li>
+      <li>La eficiencia η es constante: no se modelan pérdidas por temperatura ni por el inversor. Según AutoSolar, un aumento de 20 °C en la temperatura puede reducir el rendimiento de un panel entre 8 % y 10 %, así que el modelo tiende a sobrestimar la energía en días calurosos.</li>
+      <li>No se modela la inclinación ni la orientación del panel: se usa la irradiancia G(t) tal cual.</li>
+      <li>Los valores iniciales de A, η y G₀ son supuestos del equipo (ver la sección siguiente). Con G₀ = 900 W/m² el modelo representa un día despejado, no un día promedio.</li>
+      <li>El factor de 0,16438 kg CO₂/kWh es un valor de referencia; la UPME actualiza estos factores cada año, así que el valor vigente puede ser distinto.</li>
+    </ul>
+  </section>
+
+  <!-- ===== De dónde salen A, η y G0 ===== -->
+  <section class="doc">
+    <h2>De dónde salen el área, la eficiencia y la irradiancia</h2>
+    <p>
+      Los tres valores son los que el usuario puede cambiar con los deslizadores. Los valores
+      iniciales son supuestos razonables del modelo, no mediciones de una instalación real.
+    </p>
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Variable</th>
+            <th>Valor inicial</th>
+            <th>Rango del deslizador</th>
+            <th>De dónde sale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Irradiancia máxima G₀</td>
+            <td class="f">900 W/m²</td>
+            <td>300 a 1200 W/m²</td>
+            <td>Es la irradiancia que llega al mediodía en un día despejado. Las cifras de la ficha técnica de un panel se miden en laboratorio con 1000 W/m² de radiación y 25 °C de temperatura de celda (AutoSolar), así que 900 W/m² es un valor alto de cielo despejado, por debajo de ese estándar. Es un supuesto del equipo.</td>
+          </tr>
+          <tr>
+            <td>Área A</td>
+            <td class="f">20 m²</td>
+            <td>1 a 100 m²</td>
+            <td>Superficie de paneles sobre el techo. Equivale a unos 8 paneles de 550 W, de unos 2,58 m² cada uno (2,279 m × 1,134 m, ficha del panel Tensite 550 W de AutoSolar). Es un supuesto del equipo.</td>
+          </tr>
+          <tr>
+            <td>Eficiencia η</td>
+            <td class="f">20 %</td>
+            <td>5 a 30 %</td>
+            <td>Los paneles comerciales de silicio monocristalino rondan el 20 % al 21 %; la ficha del panel Tensite de 550 W de AutoSolar indica 21,3 %. Se usa 20 % como valor redondeado, un poco por debajo.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Cómo se obtiene la eficiencia de una ficha técnica</h3>
+    <p>
+      La potencia máxima de la etiqueta se mide con 1000 W/m², así que la eficiencia es la
+      potencia que entrega el panel dividida entre la potencia de luz que recibe su superficie.
+      Con el panel de 550 W de 2,279 m × 1,134 m:
+    </p>
+    <div class="ecuacion">
+      <span><i>η</i> = <i>P</i><sub>máx</sub> / ( 1000 W/m² · <i>A</i><sub>panel</sub> ) = 550 / ( 1000 · 2,279 · 1,134 ) ≈ 0,213 = 21,3 %</span>
+    </div>
+    <p>
+      Este resultado coincide con la eficiencia que indica la ficha del fabricante.
+    </p>
+
+    <h3>Comprobación de G₀ con el Atlas de Radiación Solar</h3>
+    <p>
+      El Atlas de Radiación Solar de Colombia (UPME e IDEAM) da la radiación diaria en kWh/m² al día.
+      Esa cantidad también es una integral: la irradiancia G(t) sumada de 6:00 a 18:00.
+    </p>
+    <div class="ecuacion">
+      <span><i>H</i> =</span>
+      <span class="integral">
+        <span class="lim"><span>18</span><span>6</span></span>
+        <span class="signo">∫</span>
+      </span>
+      <span><i>G</i><sub>0</sub> sen( π(<i>t</i> − 6)/12 ) <i>dt</i> = 24 <i>G</i><sub>0</sub> / π</span>
+    </div>
+    <p>
+      Con G₀ = 900 W/m² el modelo da H = 24 · 900 / π ≈ 6 875 Wh/m², es decir, unos 6,9 kWh/m² al
+      día. Para la sabana de Bogotá el promedio reportado a partir del Atlas está entre 3,57 y
+      4 kWh/m² al día (y entre 4,0 y 4,5 kWh/m² según el mapa oficial para el centro urbano), así
+      que 900 W/m² corresponde a un día despejado y no a un día promedio. Despejando
+      G₀ = π · H / 24, un día promedio equivale a G₀ entre unos 470 y 590 W/m².
+    </p>
+    <div class="ecuacion">
+      <span><i>G</i><sub>0</sub> = π · 4 / 24 ≈ 0,524 kW/m² ≈ 524 W/m² &nbsp;&nbsp; (para H = 4 kWh/m² al día)</span>
+    </div>
+    <p>
+      Si mueves el deslizador de G₀ cerca de 520 W/m², el simulador muestra la energía de un día
+      promedio en lugar de la de un día despejado.
+    </p>
+  </section>
+
+  <!-- ===== Instructivo ===== -->
+  <section class="doc">
+    <h2>Cómo usar el simulador</h2>
+    <ol>
+      <li>
+        <strong>Qué se calcula.</strong> El simulador resuelve la integral definida
+        E = ∫ P(t) dt entre las horas a y b (la definición completa está en la sección
+        «La integral que resuelve el simulador»). El resultado es la energía en kWh.
+      </li>
+      <li>
+        <strong>Mira la gráfica principal.</strong> La curva azul oscura es la potencia del panel
+        a lo largo del día. La zona verde es la energía producida entre a y b.
+      </li>
+      <li>
+        <strong>Configura el panel.</strong> En «Panel solar» cambia el área (A, de 1 a 100 m²) y
+        la eficiencia (η, de 5 a 30 %).
+      </li>
+      <li>
+        <strong>Configura el sol.</strong> En «Sol» cambia la irradiancia máxima G₀ (de 300 a
+        1200 W/m²). También puedes arrastrar hacia arriba o hacia abajo el rombo blanco que está
+        en el punto más alto de la curva.
+      </li>
+      <li>
+        <strong>Elige la ventana de tiempo.</strong> Mueve los deslizadores de a (hora inicial) y
+        b (hora final), o arrastra las etiquetas a y b directamente en la gráfica. Se mueven de
+        15 en 15 minutos.
+      </li>
+      <li>
+        <strong>Simula el día.</strong> Pulsa «Simular el día»: el sol recorre la curva desde a
+        hasta b y el contador de kWh va subiendo. Pulsa «Pausar» para detenerlo.
+      </li>
+      <li>
+        <strong>Elige una hora concreta.</strong> Usa el deslizador «Hora del día» o arrastra el
+        sol sobre la curva para ver la potencia, la irradiancia y la energía acumulada a esa hora.
+      </li>
+      <li>
+        <strong>Lee los resultados.</strong> En la tabla de abajo aparecen la energía producida
+        entre a y b (el valor de la integral), la energía acumulada hasta la hora marcada y el CO₂
+        que se evita. La gráfica «Energía acumulada» muestra cómo crece esa energía durante el día.
+      </li>
+      <li>
+        <strong>Comprueba el cálculo.</strong> En la sección «La integral que resuelve el
+        simulador», la lista «Con los valores que tienes puestos ahora» se actualiza con tus
+        deslizadores y debe coincidir con los resultados de la pantalla.
+      </li>
+      <li>
+        <strong>Experimenta.</strong> Duplica el área y mira que la energía se duplica. Alarga la
+        ventana alrededor del mediodía y compárala con una ventana en la mañana de la misma
+        duración: la del mediodía produce más porque la potencia es mayor.
+      </li>
+    </ol>
+  </section>
+
+  <!-- ===== Fundamento matemático y fuentes ===== -->
+  <section class="doc">
+    <h2>Fundamento matemático y fuentes</h2>
+    <p>
+      Las fórmulas del simulador salen de los temas de integración de un curso de cálculo
+      integral. Esta tabla indica en qué parte del simulador se usa cada una y en qué libro se
+      puede consultar.
+    </p>
+
+    <div class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th>Fórmula</th>
+            <th>En el simulador</th>
+            <th>Dónde consultarlo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Potencia del panel</td>
+            <td class="f">P(t) = η · A · G(t) / 1000,<br>G(t) = G₀ · sen(π(t − 6)/12)</td>
+            <td>Curva de la gráfica principal (en kW).</td>
+            <td>Duffie y Beckman, <em>Solar Engineering of Thermal Processes</em>. Condiciones de medición: AutoSolar, «Cómo entender correctamente la ficha técnica de un panel solar».</td>
+          </tr>
+          <tr>
+            <td>Sumas de Riemann</td>
+            <td class="f">E ≈ Σ P(tᵢ) · Δt,<br>Δt = (b − a)/n</td>
+            <td>Es la idea que justifica pasar de «potencia por horas» a una integral.</td>
+            <td>Stewart, §5.1 «Áreas y distancias» y §5.2 «La integral definida».</td>
+          </tr>
+          <tr>
+            <td>Integral definida</td>
+            <td class="f">E = ∫ P(t) dt, de a hasta b</td>
+            <td>«Energía producida entre a y b» y la zona verde de la gráfica.</td>
+            <td>Stewart, §5.2 «La integral definida».</td>
+          </tr>
+          <tr>
+            <td>Teorema fundamental del cálculo</td>
+            <td class="f">E = F(b) − F(a),<br>F′(t) = P(t)</td>
+            <td>Cálculo exacto de la energía, sin sumar rectángulos.</td>
+            <td>Stewart, §5.3 «El teorema fundamental del cálculo».</td>
+          </tr>
+          <tr>
+            <td>Integración por sustitución</td>
+            <td class="f">u = π(t − 6)/12,<br>∫ sen u du = −cos u + C</td>
+            <td>Permite hallar F y la curva «Energía acumulada a lo largo del día».</td>
+            <td>Stewart, §5.5 «La regla de sustitución».</td>
+          </tr>
+          <tr>
+            <td>Radiación diaria</td>
+            <td class="f">H = ∫ G(t) dt = 24 · G₀ / π</td>
+            <td>Comprobación de G₀ con el Atlas de Radiación Solar.</td>
+            <td>Stewart, §5.2 y §5.3.</td>
+          </tr>
+          <tr>
+            <td>Eficiencia del panel</td>
+            <td class="f">η = P_máx / (1000 · A_panel)</td>
+            <td>Justifica el valor de η a partir de la ficha técnica de un panel.</td>
+            <td>Ficha del panel Tensite 550 W, AutoSolar.</td>
+          </tr>
+          <tr>
+            <td>Valor promedio</td>
+            <td class="f">P̄ = E / (b − a)</td>
+            <td>Interpretación: potencia constante que daría la misma energía. No se muestra como valor.</td>
+            <td>Stewart, §6.5 «Valor promedio de una función».</td>
+          </tr>
+          <tr>
+            <td>CO₂ evitado</td>
+            <td class="f">m = FE · E,<br>FE = 0,16438 kg CO₂/kWh</td>
+            <td>«CO₂ que se evita».</td>
+            <td>XM, UPME y MinEnergía (2020), vía La República y Circular 055 de 2020 de la UPME.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Referencias</h3>
+    <ul>
+      <!-- BIBLIOTECA EAN: busca el libro en el catálogo de la Biblioteca EAN con tu usuario y pega aquí la referencia exacta que muestre (autor, edición, editorial, año y enlace del catálogo). -->
+      <li>
+        Stewart, J. <em>Cálculo de una variable: trascendentes tempranas</em> (8.ª ed.). Cengage
+        Learning. La numeración de secciones corresponde a esta edición.
+      </li>
+      <li>
+        Duffie, J. A. y Beckman, W. A. <em>Solar Engineering of Thermal Processes</em>. Wiley.
+      </li>
+      <li>
+        AutoSolar. «Cómo entender correctamente la ficha técnica de un panel solar» (condiciones de
+        medición de 1000 W/m² y 25 °C, y efecto de la temperatura en el rendimiento).
+        <a href="https://autosolar.co/aspectos-tecnicos/como-entender-correctamente-la-ficha-tecnica-de-un-panel-solar" target="_blank" rel="noopener">Ver artículo</a>.
+      </li>
+      <li>
+        AutoSolar. Ficha del Panel Solar 550W Monocristalino PERC Tensite (eficiencia del módulo
+        de 21,3 % y dimensiones de 2279 × 1134 × 35 mm).
+        <a href="https://autosolar.es/panel-solar-24-voltios/panel-solar-550w-monocristalino-perc-tensite" target="_blank" rel="noopener">Ver producto</a>.
+      </li>
+      <li>
+        UPME e IDEAM. <em>Atlas de Radiación Solar de Colombia</em>.
+        <a href="https://www1.upme.gov.co:443/Hemeroteca/Impresos/Atlas_Radiacion_Solar_2005/1-Atlas_Radiacion_Solar.pdf" target="_blank" rel="noopener">Ver documento</a>.
+      </li>
+      <li>
+        Estudio del recurso solar en la sabana de Bogotá que cita el Atlas (3,57 a 4 kWh/m² al día).
+        <a href="https://core.ac.uk/download/268203395.pdf" target="_blank" rel="noopener">Ver documento</a>.
+      </li>
+      <li>
+        La República (19 de febrero de 2020). «En Colombia el factor de emisión de CO₂ por
+        generación eléctrica es de 164,38 gramos por kWh».
+        <a href="https://www.larepublica.co/especiales/colombia-potencia-energetica/en-colombia-el-factor-de-emision-de-co2-por-generacion-electrica-es-de-164-38-gramos-por-kwh-2966236" target="_blank" rel="noopener">Ver artículo</a>.
+      </li>
+      <li>
+        UPME (2020). Circular 055 de 2020.
+        <a href="https://www1.upme.gov.co/Normatividad/Circular_055_2020.pdf" target="_blank" rel="noopener">Ver documento</a>.
+      </li>
+      <li>
+        Congreso de Colombia (2014). Ley 1715 de 2014, sobre la integración de las energías
+        renovables no convencionales al Sistema Energético Nacional.
+      </li>
+    </ul>
+  </section>
+
+</div>
+
+<script>
+  const FACTOR_CO2 = 0.16438;       // kg de CO2 por kWh (generación eléctrica del SIN)
+  const HORAS_POR_SEGUNDO = 1.5;    // velocidad de la simulación del día
+
+  const MAR       = "#0b3a5b";
+  const ACERO     = "#2c6283";
+  const AZUL      = "#1f78c8";
+  const HOJA      = "#1f9d63";
+  const HOJA_OSC  = "#137a4c";
+  const SOL       = "#ffb703";
+  const LINEA     = "#d3e8f4";
+  const FUENTE    = "'Bricolage Grotesque', 'Segoe UI', system-ui, Arial, sans-serif";
+
+  const lienzo  = document.getElementById("lienzo");
+  const lienzoE = document.getElementById("lienzoE");
+
+  let hora = 10;
+  let reproduciendo = false;
+  let ultimoInstante = 0;
+
+  let vista = null;
+
+  function el(id) { return document.getElementById(id); }
+
+  function irradiancia(t, g0) {
+    if (t < 6 || t > 18) return 0;
+    return g0 * Math.sin(Math.PI * (t - 6) / 12);
+  }
+
+  function formato(x, decimales) {
+    return x.toLocaleString("es-CO", {
+      minimumFractionDigits: decimales,
+      maximumFractionDigits: decimales
+    });
+  }
+
+  function limitar(valor, minimo, maximo) {
+    return Math.min(maximo, Math.max(minimo, valor));
+  }
+
+  function horaTexto(t) {
+    let h = Math.floor(t);
+    let m = Math.round((t - h) * 60);
+    if (m === 60) { h += 1; m = 0; }
+    return h + ":" + (m < 10 ? "0" + m : m);
+  }
+
+  function mezclar(c1, c2, f) {
+    const a = [1, 3, 5].map(i => parseInt(c1.slice(i, i + 2), 16));
+    const b = [1, 3, 5].map(i => parseInt(c2.slice(i, i + 2), 16));
+    return "rgb(" + a.map((v, i) => Math.round(v + (b[i] - v) * f)).join(",") + ")";
+  }
+
+  function rectRedondo(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  function preparar(cv) {
+    const dpr = window.devicePixelRatio || 1;
+    const W = cv.clientWidth;
+    const H = cv.clientHeight;
+    cv.width = W * dpr;
+    cv.height = H * dpr;
+    const c = cv.getContext("2d");
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, W, H);
+    return { c: c, W: W, H: H };
+  }
+
+  function pintar(input) {
+    const f = (input.value - input.min) / (input.max - input.min) * 100;
+    input.style.setProperty("--lleno", f + "%");
+  }
+
+  function leerParametros() {
+    const A   = Number(el("A").value);
+    const eta = Number(el("eta").value) / 100;
+    const g0  = Number(el("g0").value);
+    let a = Number(el("a").value);
+    let b = Number(el("b").value);
+
+    if (b <= a) {
+      b = Math.min(18, a + 0.25);
+      if (b <= a) a = b - 0.25;
+      el("a").value = a;
+      el("b").value = b;
+    }
+    return { A: A, eta: eta, g0: g0, a: a, b: b, k: eta * A / 1000 };
+  }
+
+  function energiaHasta(t, p) {
+    if (t <= p.a) return 0;
+    const tt = Math.min(t, p.b);
+    return p.k * p.g0 * (12 / Math.PI) *
+      (Math.cos(Math.PI * (p.a - 6) / 12) - Math.cos(Math.PI * (tt - 6) / 12));
+  }
+
+  function actualizar() {
+    const p = leerParametros();
+
+    el("vA").textContent    = p.A + " m²";
+    el("vEta").textContent  = Math.round(p.eta * 100) + " %";
+    el("vG0").textContent   = p.g0 + " W/m²";
+    el("va").textContent    = horaTexto(p.a);
+    el("vb").textContent    = horaTexto(p.b);
+    el("vhora").textContent = horaTexto(hora);
+    el("hora").value = hora;
+    document.querySelectorAll("input[type=range]").forEach(pintar);
+
+    const total = energiaHasta(p.b, p);
+    const acum = energiaHasta(hora, p);
+
+    el("gAcum").textContent = formato(acum, 2);
+    el("gRango").textContent = hora <= p.a
+      ? "La energía empieza a contarse a las " + horaTexto(p.a)
+      : "acumulados entre las " + horaTexto(p.a) + " y las " + horaTexto(Math.min(hora, p.b));
+    el("gHora").textContent = horaTexto(hora);
+    el("gPot").textContent  = "Potencia: " + formato(p.k * irradiancia(hora, p.g0), 2) + " kW";
+    el("gIrr").textContent  = "Irradiancia: " + formato(irradiancia(hora, p.g0), 0) + " W/m²";
+
+    el("rExacta").textContent = formato(total, 2) + " kWh";
+    el("rAcum").textContent   = formato(acum, 2) + " kWh";
+    el("rCO2").textContent    = formato(total * FACTOR_CO2, 2) + " kg";
+
+    // Sección "Con los valores que tienes puestos ahora"
+    el("iE").textContent     = formato(total, 2);
+    el("lvK").textContent    = formato(p.k, 4);
+    el("lvP").textContent    = formato(p.k * p.g0, 2) + " kW";
+    el("lvE").textContent    = formato(total, 2) + " kWh";
+    el("lvHora").textContent = horaTexto(hora);
+    el("lvEh").textContent   = formato(acum, 2) + " kWh";
+    el("lvC").textContent    = formato(total * FACTOR_CO2, 2) + " kg";
+
+    dibujarPrincipal(p);
+    dibujarEnergia(p, total);
+  }
+
+  function dibujarPrincipal(p) {
+    const o = preparar(lienzo);
+    const c = o.c, W = o.W, H = o.H;
+
+    const mx = 16, xMin = 4.6, xMax = 19.6;
+    const Y0 = H - 56, yTop = 46;
+    const yMax = p.k * 1200 * 1.05;
+
+    const X = t => mx + (t - xMin) / (xMax - xMin) * (W - 2 * mx);
+    const Y = v => Y0 - (v / yMax) * (Y0 - yTop);
+
+    vista = {
+      X: X, Y: Y, Y0: Y0, k: p.k, g0: p.g0, a: p.a, b: p.b,
+      horaDesdeX: px => xMin + (px - mx) / (W - 2 * mx) * (xMax - xMin),
+      potenciaDesdeY: py => (Y0 - py) / (Y0 - yTop) * yMax
+    };
+
+    const luz = Math.max(0, Math.sin(Math.PI * (hora - 6) / 12));   // 0 al amanecer, 1 al mediodía
+
+    const cielo = c.createLinearGradient(0, 0, 0, Y0);
+    cielo.addColorStop(0, mezclar("#8fb8d6", "#7cc0ef", luz));
+    cielo.addColorStop(1, mezclar("#dcecf5", "#d7f0fb", luz));
+    c.fillStyle = cielo;
+    c.fillRect(0, 0, W, Y0);
+
+    c.fillStyle = "#a8dbbd";
+    c.beginPath(); c.ellipse(W * 0.03, Y0, W * 0.14, 40, 0, Math.PI, 2 * Math.PI); c.fill();
+    c.fillStyle = "#8ccaa6";
+    c.beginPath(); c.ellipse(W * 0.98, Y0, W * 0.17, 50, 0, Math.PI, 2 * Math.PI); c.fill();
+    c.fillStyle = HOJA_OSC;
+    c.fillRect(0, Y0, W, H - Y0);
+
+    c.fillStyle = "rgba(255, 255, 255, 0.92)";
+    c.font = "500 12.5px " + FUENTE;
+    c.textAlign = "center";
+    [6, 9, 12, 15, 18].forEach(function (t) {
+      c.fillText(t + ":00", X(t), Y0 + 38);
+      c.fillRect(X(t) - 0.5, Y0, 1, 7);
+    });
+
+    function trazo(t0, t1) {
+      c.beginPath();
+      c.moveTo(X(t0), Y0);
+      for (let i = 0; i <= 120; i++) {
+        const t = t0 + (t1 - t0) * i / 120;
+        c.lineTo(X(t), Y(p.k * irradiancia(t, p.g0)));
+      }
+      c.lineTo(X(t1), Y0);
+      c.closePath();
+    }
+
+    trazo(p.a, p.b);
+    c.fillStyle = "rgba(31, 157, 99, 0.30)";
+    c.fill();
+    const tFin = Math.min(hora, p.b);
+    if (tFin > p.a) {
+      trazo(p.a, tFin);
+      c.fillStyle = HOJA;
+      c.fill();
+    }
+
+    c.beginPath();
+    c.strokeStyle = MAR;
+    c.lineWidth = 3.5;
+    c.lineJoin = "round";
+    for (let i = 0; i <= 300; i++) {
+      const t = 6 + 12 * i / 300;
+      const y = Y(p.k * irradiancia(t, p.g0));
+      if (i === 0) c.moveTo(X(t), y); else c.lineTo(X(t), y);
+    }
+    c.stroke();
+
+    [["a", p.a], ["b", p.b]].forEach(function (par) {
+      const nombre = par[0], t = par[1];
+      const x = X(t);
+      const yCurva = Y(p.k * irradiancia(t, p.g0));
+      c.strokeStyle = MAR;
+      c.lineWidth = 2.5;
+      c.beginPath(); c.moveTo(x, Y0); c.lineTo(x, yCurva - 8); c.stroke();
+
+      const texto = nombre + "  " + horaTexto(t);
+      c.font = "600 12.5px " + FUENTE;
+      const w = c.measureText(texto).width + 20;
+      rectRedondo(c, x - w / 2, Y0 - 12, w, 24, 12);
+      c.fillStyle = MAR;
+      c.fill();
+      c.fillStyle = "#ffffff";
+      c.textAlign = "center";
+      c.fillText(texto, x, Y0 + 4);
+    });
+
+    const hx = X(18.95) - 22;
+    c.fillStyle = "#f4fafc";
+    c.fillRect(hx, Y0 - 24, 44, 24);
+    c.fillStyle = "#7fb6d9";
+    c.fillRect(hx + 18, Y0 - 14, 8, 14);
+    c.beginPath();
+    c.moveTo(hx - 4, Y0 - 24);
+    c.lineTo(hx + 48, Y0 - 24);
+    c.lineTo(hx + 40, Y0 - 37);
+    c.lineTo(hx + 4, Y0 - 37);
+    c.closePath();
+    c.fillStyle = MAR;
+    c.fill();
+    c.fillStyle = "rgba(255, 255, 255," + (luz * 0.5) + ")";
+    c.fill();
+
+    const sx = X(hora);
+    const sy = Y(p.k * irradiancia(hora, p.g0));
+    c.setLineDash([2, 5]);
+    c.strokeStyle = "rgba(11, 58, 91, 0.5)";
+    c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx, Y0); c.stroke();
+    c.setLineDash([]);
+
+    const radio = 34 + 36 * luz;
+    const halo = c.createRadialGradient(sx, sy, 8, sx, sy, radio);
+    halo.addColorStop(0, "rgba(255, 214, 90, 0.75)");
+    halo.addColorStop(1, "rgba(255, 214, 90, 0)");
+    c.fillStyle = halo;
+    c.beginPath(); c.arc(sx, sy, radio, 0, 2 * Math.PI); c.fill();
+    c.fillStyle = SOL;
+    c.strokeStyle = "#ffffff";
+    c.lineWidth = 3;
+    c.beginPath(); c.arc(sx, sy, 13, 0, 2 * Math.PI); c.fill(); c.stroke();
+
+    const gx = X(12), gy = Y(p.k * p.g0);
+    c.beginPath();
+    c.moveTo(gx, gy - 10); c.lineTo(gx + 10, gy); c.lineTo(gx, gy + 10); c.lineTo(gx - 10, gy);
+    c.closePath();
+    c.fillStyle = "#ffffff";
+    c.fill();
+    c.strokeStyle = AZUL;
+    c.lineWidth = 3;
+    c.stroke();
+    c.fillStyle = MAR;
+    c.font = "600 12.5px " + FUENTE;
+    c.textAlign = "center";
+    c.fillText("G₀ = " + p.g0 + " W/m²", gx, gy - 18);
+  }
+
+  function dibujarEnergia(p, total) {
+    const o = preparar(lienzoE);
+    const c = o.c, W = o.W, H = o.H;
+
+    const m = { izq: 66, der: 18, sup: 24, inf: 34 };
+    const ancho = W - m.izq - m.der;
+    const alto  = H - m.sup - m.inf;
+    const xMin = 5, xMax = 19;
+    const yMax = p.k * 1200 * (24 / Math.PI) * 1.05;   // máximo posible en un día completo
+
+    const X = t => m.izq + (t - xMin) / (xMax - xMin) * ancho;
+    const Y = v => m.sup + alto - (v / yMax) * alto;
+
+    c.font = "500 12px " + FUENTE;
+    c.fillStyle = ACERO;
+    c.strokeStyle = LINEA;
+    c.lineWidth = 1;
+    c.textAlign = "center";
+    for (let t = 6; t <= 18; t += 3) {
+      c.beginPath(); c.moveTo(X(t), m.sup); c.lineTo(X(t), m.sup + alto); c.stroke();
+      c.fillText(t + ":00", X(t), H - 12);
+    }
+    c.textAlign = "right";
+    for (let i = 0; i <= 4; i++) {
+      const v = yMax * i / 4;
+      c.beginPath(); c.moveTo(m.izq, Y(v)); c.lineTo(m.izq + ancho, Y(v)); c.stroke();
+      c.fillText(formato(v, 1) + " kWh", m.izq - 8, Y(v) + 4);
+    }
+
+    // Líneas de a y b
+    c.setLineDash([4, 4]);
+    c.strokeStyle = ACERO;
+    [p.a, p.b].forEach(function (t) {
+      c.beginPath(); c.moveTo(X(t), m.sup); c.lineTo(X(t), Y(0)); c.stroke();
+    });
+    c.setLineDash([]);
+
+    c.beginPath();
+    c.moveTo(X(xMin), Y(0));
+    for (let i = 0; i <= 300; i++) {
+      const t = xMin + (xMax - xMin) * i / 300;
+      c.lineTo(X(t), Y(energiaHasta(t, p)));
+    }
+    c.lineTo(X(xMax), Y(0));
+    c.closePath();
+    c.fillStyle = "rgba(31, 157, 99, 0.15)";
+    c.fill();
+
+    c.beginPath();
+    c.strokeStyle = HOJA;
+    c.lineWidth = 3.5;
+    c.lineJoin = "round";
+    for (let i = 0; i <= 300; i++) {
+      const t = xMin + (xMax - xMin) * i / 300;
+      const y = Y(energiaHasta(t, p));
+      if (i === 0) c.moveTo(X(t), y); else c.lineTo(X(t), y);
+    }
+    c.stroke();
+
+    c.fillStyle = HOJA_OSC;
+    c.font = "700 13px " + FUENTE;
+    c.textAlign = "right";
+    c.fillText("E(b) = " + formato(total, 2) + " kWh", X(p.b) - 10, Y(total) - 9);
+
+    c.setLineDash([3, 4]);
+    c.strokeStyle = SOL;
+    c.lineWidth = 2;
+    c.beginPath(); c.moveTo(X(hora), m.sup); c.lineTo(X(hora), Y(0)); c.stroke();
+    c.setLineDash([]);
+    c.beginPath();
+    c.arc(X(hora), Y(energiaHasta(hora, p)), 7, 0, 2 * Math.PI);
+    c.fillStyle = SOL;
+    c.fill();
+    c.strokeStyle = "#ffffff";
+    c.lineWidth = 2.5;
+    c.stroke();
+  }
+
+  function paso(ahora) {
+    if (!reproduciendo) return;
+    const p = leerParametros();
+    const segundos = (ahora - ultimoInstante) / 1000;
+    ultimoInstante = ahora;
+    hora += segundos * HORAS_POR_SEGUNDO;
+    if (hora >= p.b) {
+      hora = p.b;
+      reproduciendo = false;
+      el("boton").textContent = "Simular el día";
+    }
+    actualizar();
+    if (reproduciendo) requestAnimationFrame(paso);
+  }
+
+  function detener() {
+    reproduciendo = false;
+    el("boton").textContent = "Simular el día";
+  }
+
+  el("boton").addEventListener("click", function () {
+    if (reproduciendo) { detener(); return; }
+    const p = leerParametros();
+    if (hora < p.a || hora >= p.b - 0.01) hora = p.a;   // empezar desde a
+    reproduciendo = true;
+    el("boton").textContent = "Pausar";
+    ultimoInstante = performance.now();
+    requestAnimationFrame(paso);
+  });
+
+  el("hora").addEventListener("input", function () {
+    detener();
+    hora = Number(el("hora").value);
+    actualizar();
+  });
+
+  let arrastrando = null;
+
+  function posicion(evento) {
+    const caja = lienzo.getBoundingClientRect();
+    return { x: evento.clientX - caja.left, y: evento.clientY - caja.top };
+  }
+
+  function elementoCercano(pos) {
+    if (!vista) return null;
+
+    const sx = vista.X(hora), sy = vista.Y(vista.k * irradiancia(hora, vista.g0));
+    if (Math.hypot(pos.x - sx, pos.y - sy) < 24) return "sol";
+
+    const gx = vista.X(12), gy = vista.Y(vista.k * vista.g0);
+    if (Math.hypot(pos.x - gx, pos.y - gy) < 18) return "g0";
+
+    let mejor = null, mejorDist = 14;
+    [["a", vista.a], ["b", vista.b]].forEach(function (par) {
+      const x = vista.X(par[1]);
+      const arriba = vista.Y(vista.k * irradiancia(par[1], vista.g0)) - 14;
+      const d = Math.abs(pos.x - x);
+      if (d < mejorDist && pos.y >= arriba && pos.y <= vista.Y0 + 16) {
+        mejorDist = d;
+        mejor = par[0];
+      }
+    });
+    return mejor;
+  }
+
+  function mover(pos) {
+    if (arrastrando === "sol") {
+      detener();
+      hora = limitar(Math.round(vista.horaDesdeX(pos.x) * 20) / 20, 6, 18);
+    } else if (arrastrando === "a") {
+      const t = Math.round(vista.horaDesdeX(pos.x) * 4) / 4;      // pasos de 0,25 h
+      el("a").value = limitar(t, 6, vista.b - 0.25);
+    } else if (arrastrando === "b") {
+      const t = Math.round(vista.horaDesdeX(pos.x) * 4) / 4;
+      el("b").value = limitar(t, vista.a + 0.25, 18);
+    } else if (arrastrando === "g0") {
+      const g = Math.round(vista.potenciaDesdeY(pos.y) / vista.k / 10) * 10;   // pasos de 10 W/m²
+      el("g0").value = limitar(g, 300, 1200);
+    }
+    actualizar();
+  }
+
+  const CURSORES = { sol: "grab", g0: "ns-resize", a: "ew-resize", b: "ew-resize" };
+
+  lienzo.addEventListener("pointerdown", function (e) {
+    arrastrando = elementoCercano(posicion(e));
+    if (arrastrando) {
+      lienzo.setPointerCapture(e.pointerId);
+      lienzo.style.cursor = "grabbing";
+      mover(posicion(e));
+    }
+  });
+
+  lienzo.addEventListener("pointermove", function (e) {
+    const pos = posicion(e);
+    if (arrastrando) {
+      mover(pos);
+    } else {
+      const cerca = elementoCercano(pos);
+      lienzo.style.cursor = cerca ? CURSORES[cerca] : "default";
+    }
+  });
+
+  function soltar() {
+    arrastrando = null;
+    lienzo.style.cursor = "default";
+  }
+  lienzo.addEventListener("pointerup", soltar);
+  lienzo.addEventListener("pointercancel", soltar);
+
+  ["A", "eta", "g0", "a", "b"].forEach(function (id) {
+    el(id).addEventListener("input", actualizar);
+  });
+  window.addEventListener("resize", actualizar);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(actualizar);
+  }
+  actualizar();
+</script>
+</body>
+</html>
